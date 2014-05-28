@@ -21,6 +21,7 @@ make_config.mk
 *.o-*
 *.swp
 *~
+*.lo
 
 ldb
 manifest_dump
@@ -50,3 +51,24 @@ java/**.asc
 java/javadoc
 
 scan_build_report/
+.deps/
+.libs/
+Makefile.in
+aclocal.m4
+ar-lib
+autom4te.cache/
+config.guess
+config.h
+config.h.in
+config.log
+config.status
+config.sub
+configure
+depcomp
+install-sh
+librocksdb.la
+libtool
+ltmain.sh
+missing
+stamp-h1
+Makefile
