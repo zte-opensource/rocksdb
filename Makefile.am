@@ -3,13 +3,13 @@ OPT ?= -DNDEBUG
 
 ACLOCAL_AMFLAGS = -I m4
 WARNING_FLAGS = -Wall -Werror 
-CFLAGS = -g -O2 -fPIC
-CXXFLAGS = -std=c++11 -g -O2 -fPIC
+ROCKSDB_CFLAGS = -g -O2 -fPIC
+ROCKSDB_CXXFLAGS = -std=c++11 -g -O2 -fPIC
 GFLAG = gflags
 noinst_LTLIBRARIES = librocksdb.la
 
-librocksdb_la_CFLAGS = $(WARNING_FLAGS) -I$(srcdir) -I$(srcdir)/include -DOS_LINUX -DROCKSDB_PLATFORM_POSIX -fno-builtin-memcmp $(OPT) -DHAVE_JEMALLOC -Woverloaded-virtual
-librocksdb_la_CXXFLAGS = $(WARNING_FLAGS) -std=c++11 -I$(srcdir) -I$(srcdir)/include -DOS_LINUX -DROCKSDB_PLATFORM_POSIX -fno-builtin-memcmp $(OPT) -DHAVE_JEMALLOC -Woverloaded-virtual -DROCKSDB_ATOMIC_PRESENT -DROCKSDB_FALLOCATE_PRESENT 
+librocksdb_la_CFLAGS = $(WARNING_FLAGS) $(ROCKSDB_CFLAGS) -I$(srcdir) -I$(srcdir)/include -DOS_LINUX -DROCKSDB_PLATFORM_POSIX -fno-builtin-memcmp $(OPT) -DHAVE_JEMALLOC -Woverloaded-virtual
+librocksdb_la_CXXFLAGS = $(WARNING_FLAGS) $(ROCKSDB_CXXFLAGS) -I$(srcdir) -I$(srcdir)/include -DOS_LINUX -DROCKSDB_PLATFORM_POSIX -fno-builtin-memcmp $(OPT) -DHAVE_JEMALLOC -Woverloaded-virtual -DROCKSDB_ATOMIC_PRESENT -DROCKSDB_FALLOCATE_PRESENT 
 librocksdb_la_LDFLAGS = -shared -Wl,-soname -Wl
 if WITH_ATOMIC
    librocksdb_la_CFLAGS += -DROCKSDB_ATOMIC_PRESENT
