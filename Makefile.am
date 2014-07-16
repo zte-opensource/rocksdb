@@ -1,4 +1,4 @@
-
+AUTOMAKE_OPTIONS = subdir-objects
 OPT ?= -DNDEBUG
 
 ACLOCAL_AMFLAGS = -I m4
