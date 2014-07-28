@@ -29,6 +29,7 @@ CMakeCache.txt
 CMakeFiles/
 build/
 *.lo
+*~
 
 ldb
 manifest_dump
@@ -62,6 +63,7 @@ java/**.asc
 java/javadoc
 
 scan_build_report/
+.dirstamp
 .deps/
 .libs/
 Makefile.in
