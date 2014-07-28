@@ -21,6 +21,7 @@ build_config.mk
 *.o-*
 *.swp
 *.lo
+*~
 
 ldb
 manifest_dump
@@ -34,6 +35,7 @@ tags
 java/*.log
 java/include/org_rocksdb_*.h
 
+.dirstamp
 .deps/
 .libs/
 Makefile.in
