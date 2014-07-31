@@ -56,7 +56,7 @@ if WITH_GFLAGS_FLAGS
    librocksdb_la_LDFLAGS += -lgflags
 endif
 
-$(shell (./build_tools/build_detect_version))
+FOO = `./build_tools/build_detect_version`
 
 SOURCE_FILES = db/builder.cc \
 	db/c.cc \
