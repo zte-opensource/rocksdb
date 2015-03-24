@@ -9,7 +9,7 @@ GFLAG = gflags
 noinst_LTLIBRARIES = librocksdb.la
 
 librocksdb_la_CFLAGS = $(WARNING_FLAGS) $(ROCKSDB_CFLAGS) -I$(srcdir) -I$(srcdir)/include -DOS_LINUX -DROCKSDB_PLATFORM_POSIX -fno-builtin-memcmp $(OPT) -DHAVE_JEMALLOC -Woverloaded-virtual
-librocksdb_la_CXXFLAGS = $(WARNING_FLAGS) $(ROCKSDB_CXXFLAGS) -I$(srcdir) -I$(srcdir)/include -DOS_LINUX -DROCKSDB_PLATFORM_POSIX -fno-builtin-memcmp $(OPT) -DHAVE_JEMALLOC -Woverloaded-virtual -DROCKSDB_ATOMIC_PRESENT -DROCKSDB_FALLOCATE_PRESENT
+librocksdb_la_CXXFLAGS = $(WARNING_FLAGS) $(ROCKSDB_CXXFLAGS) -I$(srcdir) -I$(srcdir)/include -I$(srcdir)/third-party/gtest-1.7.0/fused-src -DOS_LINUX -DROCKSDB_PLATFORM_POSIX -fno-builtin-memcmp $(OPT) -DHAVE_JEMALLOC -Woverloaded-virtual -DROCKSDB_ATOMIC_PRESENT -DROCKSDB_FALLOCATE_PRESENT
 librocksdb_la_LDFLAGS = -shared -Wl,-soname -Wl
 if WITH_ATOMIC
    librocksdb_la_CFLAGS += -DROCKSDB_ATOMIC_PRESENT
