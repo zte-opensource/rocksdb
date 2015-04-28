@@ -1518,7 +1518,9 @@ class PosixEnv : public Env {
     // TODO(icanadi) it's faster if fallocate_with_keep_size is false, but it
     // breaks TransactionLogIteratorStallAtLastRecord unit test. Fix the unit
     // test and make this false
-    optimized.fallocate_with_keep_size = true;
+    // CEPH: we don't care about replication and want to avoid updating the
+    // inode... set this to false! [-sage]
+    optimized.fallocate_with_keep_size = false;  //true;
     return optimized;
   }
 
