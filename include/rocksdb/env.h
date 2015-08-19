@@ -130,6 +130,16 @@ class Env {
                                  unique_ptr<WritableFile>* result,
                                  const EnvOptions& options) = 0;
 
+  virtual Status ReuseWritableFile(const std::string& fname,
+				   const std::string& old_fname,
+				   unique_ptr<WritableFile>* result,
+				   const EnvOptions& options) {
+    Status s = RenameFile(old_fname, fname);
+    if (!s.ok())
+      return s;
+    return NewWritableFile(fname, result, options);
+  }
+
   // Create an object that both reads and writes to a file on
   // specified offsets (random access). If file already exists,
   // does not overwrite it. On success, stores a pointer to the
