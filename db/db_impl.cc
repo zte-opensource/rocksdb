@@ -1228,7 +1228,17 @@ Status DBImpl::FlushMemTableToOutputFile(
       while (alive_log_files_.size() &&
              alive_log_files_.begin()->number < versions_->MinLogNumber()) {
         const auto& earliest = *alive_log_files_.begin();
-        job_context->log_delete_files.push_back(earliest.number);
+	if (log_recycle_files.size() < versions_->MinLogNumber()) {
+	  Log(InfoLogLevel::INFO_LEVEL, db_options_.info_log,
+	      "adding log %" PRIu64 " to recycle list\n",
+	      earliest.number);
+	  log_recycle_files.push_back(earliest.number);
+	} else {
+	  Log(InfoLogLevel::INFO_LEVEL, db_options_.info_log,
+	      "adding log %" PRIu64 " to delete list\n",
+	      earliest.number);
+	  job_context->log_delete_files.push_back(earliest.number);
+	}
         total_log_size_ -= earliest.size;
         alive_log_files_.pop_front();
       }
@@ -3449,6 +3459,11 @@ Status DBImpl::SetNewMemtableAndNewLogFile(ColumnFamilyData* cfd,
   // Do this without holding the dbmutex lock.
   assert(versions_->prev_log_number() == 0);
   bool creating_new_log = !log_empty_;
+  uint64_t recycle_log_number = 0;
+  if (creating_new_log) {
+    recycle_log_number = log_recycle_files.front();
+    log_recycle_files.pop_front();
+  }
   uint64_t new_log_number =
       creating_new_log ? versions_->NewFileNumber() : logfile_number_;
   SuperVersion* new_superversion = nullptr;
@@ -3457,13 +3472,24 @@ Status DBImpl::SetNewMemtableAndNewLogFile(ColumnFamilyData* cfd,
   Status s;
   {
     if (creating_new_log) {
-      s = env_->NewWritableFile(
+      if (log_recycle_files.empty()) {
+	s = env_->NewWritableFile(
           LogFileName(db_options_.wal_dir, new_log_number), &lfile,
           env_->OptimizeForLogWrite(env_options_, db_options_));
+      } else {
+	Log(InfoLogLevel::INFO_LEVEL, db_options_.info_log,
+	    "reusing log %" PRIu64 " from recycle list\n",
+	    recycle_log_number);
+	s = env_->ReuseWritableFile(
+          LogFileName(db_options_.wal_dir, new_log_number),
+          LogFileName(db_options_.wal_dir, recycle_log_number),
+	  &lfile,
+          env_->OptimizeForLogWrite(env_options_, db_options_));
+      }
       if (s.ok()) {
-        // Our final size should be less than write_buffer_size
-        // (compression, etc) but err on the side of caution.
-        lfile->SetPreallocationBlockSize(
+	// Our final size should be less than write_buffer_size
+	// (compression, etc) but err on the side of caution.
+	lfile->SetPreallocationBlockSize(
             1.1 * mutable_cf_options.write_buffer_size);
         new_log = new log::Writer(std::move(lfile));
         log_dir_synced_ = false;
