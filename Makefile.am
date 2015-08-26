@@ -85,6 +85,7 @@ SOURCE_FILES = db/builder.cc \
         db/db_impl_debug.cc \
         db/db_impl_readonly.cc \
         db/db_iter.cc \
+	db/event_logger_helpers.cc \
         db/file_indexer.cc \
         db/filename.cc \
         db/flush_job.cc \
@@ -214,7 +215,6 @@ SOURCE_H = util/allocator.h \
         util/arena.h \
         util/auto_roll_logger.h \
         util/autovector.h \
-        util/benchharness.h \
         util/build_version.h \
         util/coding.h \
         util/compression.h \
