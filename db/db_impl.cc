@@ -137,6 +137,10 @@ DBOptions SanitizeOptions(const std::string& dbname, const DBOptions& src) {
     }
   }
 
+  if (result.WAL_ttl_seconds > 0 || result.WAL_size_limit_MB > 0) {
+    result.recycle_log_files = false;
+  }
+
   if (result.wal_dir.empty()) {
     // Use dbname as default
     result.wal_dir = dbname;
