@@ -899,6 +899,14 @@ struct DBOptions {
   // Default: 1000
   size_t keep_log_file_num;
 
+  // Recycle log files.
+  // If true, we will reuse previously written log files for new logs,
+  // overwriting the old data.  This is more efficient because the blocks
+  // are already allocated and fdatasync does not need to update the inode
+  // after each write.
+  // Default: false
+  bool recycle_log_files;
+
   // manifest file is rolled over on reaching this limit.
   // The older manifest file be deleted.
   // The default value is MAX_INT so that roll-over does not take place.

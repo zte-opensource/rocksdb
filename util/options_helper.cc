@@ -525,6 +525,8 @@ bool ParseDBOption(const std::string& name, const std::string& value,
       new_options->log_file_time_to_roll = ParseSizeT(value);
     } else if (name == "keep_log_file_num") {
       new_options->keep_log_file_num = ParseSizeT(value);
+    } else if (name == "recycle_log_files") {
+      new_options->recycle_log_files = ParseSizeT(value);
     } else if (name == "max_manifest_file_size") {
       new_options->max_manifest_file_size = ParseUint64(value);
     } else if (name == "table_cache_numshardbits") {
