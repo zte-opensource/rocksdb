@@ -1228,7 +1228,8 @@ Status DBImpl::FlushMemTableToOutputFile(
       while (alive_log_files_.size() &&
              alive_log_files_.begin()->number < versions_->MinLogNumber()) {
         const auto& earliest = *alive_log_files_.begin();
-	if (log_recycle_files.size() < versions_->MinLogNumber()) {
+	if (db_options_.recycle_log_files &&
+	    log_recycle_files.size() < versions_->MinLogNumber()) {
 	  Log(InfoLogLevel::INFO_LEVEL, db_options_.info_log,
 	      "adding log %" PRIu64 " to recycle list\n",
 	      earliest.number);
@@ -3460,7 +3461,8 @@ Status DBImpl::SetNewMemtableAndNewLogFile(ColumnFamilyData* cfd,
   assert(versions_->prev_log_number() == 0);
   bool creating_new_log = !log_empty_;
   uint64_t recycle_log_number = 0;
-  if (creating_new_log) {
+  if (creating_new_log && db_options_.recycle_log_files &&
+      !log_recycle_files.empty()) {
     recycle_log_number = log_recycle_files.front();
     log_recycle_files.pop_front();
   }
@@ -3472,11 +3474,7 @@ Status DBImpl::SetNewMemtableAndNewLogFile(ColumnFamilyData* cfd,
   Status s;
   {
     if (creating_new_log) {
-      if (log_recycle_files.empty()) {
-	s = env_->NewWritableFile(
-          LogFileName(db_options_.wal_dir, new_log_number), &lfile,
-          env_->OptimizeForLogWrite(env_options_, db_options_));
-      } else {
+      if (recycle_log_number) {
 	Log(InfoLogLevel::INFO_LEVEL, db_options_.info_log,
 	    "reusing log %" PRIu64 " from recycle list\n",
 	    recycle_log_number);
@@ -3484,6 +3482,10 @@ Status DBImpl::SetNewMemtableAndNewLogFile(ColumnFamilyData* cfd,
           LogFileName(db_options_.wal_dir, new_log_number),
           LogFileName(db_options_.wal_dir, recycle_log_number),
 	  &lfile,
+          env_->OptimizeForLogWrite(env_options_, db_options_));
+      } else {
+	s = env_->NewWritableFile(
+          LogFileName(db_options_.wal_dir, new_log_number), &lfile,
           env_->OptimizeForLogWrite(env_options_, db_options_));
       }
       if (s.ok()) {
