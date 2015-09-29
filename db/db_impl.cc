@@ -1010,6 +1010,8 @@ Status DBImpl::RecoverLogFiles(const std::vector<uint64_t>& log_numbers,
     Slice record;
     WriteBatch batch;
     while (reader.ReadRecord(&record, &scratch) && status.ok()) {
+      Log(InfoLogLevel::INFO_LEVEL,
+	  db_options_.info_log, " read one record size %d", record.size());
       if (record.size() < 12) {
         reporter.Corruption(record.size(),
                             Status::Corruption("log record too small"));
@@ -1034,6 +1036,8 @@ Status DBImpl::RecoverLogFiles(const std::vector<uint64_t>& log_numbers,
       if (last_seq > *max_sequence) {
         *max_sequence = last_seq;
       }
+      Log(InfoLogLevel::INFO_LEVEL,
+	  db_options_.info_log, "  last_seq %d", last_seq);
 
       if (!read_only) {
         // we can do this because this is called before client has access to the
