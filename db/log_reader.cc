@@ -33,6 +33,7 @@ Reader::Reader(const DBOptions *opt,
       buffer_(),
       eof_(false),
       read_error_(false),
+      recycled_(false),
       eof_offset_(0),
       last_record_offset_(0),
       end_of_buffer_offset_(0),
@@ -281,7 +282,9 @@ unsigned int Reader::ReadPhysicalRecord(Slice* result) {
       size_t drop_size = buffer_.size();
       buffer_.clear();
       if (!eof_) {
-        ReportCorruption(drop_size, "bad record length");
+	if (!recycled_) {
+	  ReportCorruption(drop_size, "bad record length");
+	}
         return kBadRecord;
       }
       // If the end of the file has been reached without reading |length| bytes
@@ -302,16 +305,39 @@ unsigned int Reader::ReadPhysicalRecord(Slice* result) {
 
     // Check crc
     if (checksum_) {
-      uint32_t expected_crc = crc32c::Unmask(DecodeFixed32(header));
-      uint32_t actual_crc = crc32c::Value(header + 6, 1 + length);
+      uint32_t expected_crc, actual_crc;
+      bool try_recycled = false;
+      if (!recycled_) {
+	// Simple CRC (no log number)
+	expected_crc = crc32c::Unmask(DecodeFixed32(header));
+	actual_crc = crc32c::Value(header + 6, 1 + length);
+	if (last_record_offset_ == 0 && actual_crc != expected_crc) {
+	  try_recycled = true;
+	}
+      }
+      if (recycled_ || try_recycled) {
+	uint32_t stored_crc = crc32c::Unmask(DecodeFixed32(header));
+	expected_crc = stored_crc ^ log_number_;
+	actual_crc = crc32c::Value(header + 6, 1 + length);
+	if (try_recycled && db_options_)
+	  Log(InfoLogLevel::INFO_LEVEL, db_options_->info_log,
+	      "ReadPhysicalRecord file is recycled; using alt CRC\n");
+	if (try_recycled && actual_crc == expected_crc) {
+	  // We failed the normal CRC but we matched a recycled CRC.. this
+	  // must be a recycled file.
+	  recycled_ = true;
+	}
+      }
       if (actual_crc != expected_crc) {
         // Drop the rest of the buffer since "length" itself may have
         // been corrupted and if we trust it, we could find some
         // fragment of a real log record that just happens to look
         // like a valid log record.
-        size_t drop_size = buffer_.size();
         buffer_.clear();
-        ReportCorruption(drop_size, "checksum mismatch");
+        if (!recycled_) {
+	  size_t drop_size = buffer_.size();
+	  ReportCorruption(drop_size, "checksum mismatch");
+	}
         return kBadRecord;
       }
     }
