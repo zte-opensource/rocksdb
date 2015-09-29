@@ -72,7 +72,7 @@ class WalManagerTest : public testing::Test {
     std::string fname = ArchivedLogFileName(dbname_, current_log_number_);
     unique_ptr<WritableFile> file;
     ASSERT_OK(env_->NewWritableFile(fname, &file, env_options_));
-    current_log_writer_.reset(new log::Writer(std::move(file)));
+    current_log_writer_.reset(new log::Writer(&db_options_, std::move(file)));
   }
 
   void CreateArchiveLogs(int num_logs, int entries_per_log) {

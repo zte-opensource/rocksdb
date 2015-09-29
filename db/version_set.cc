@@ -1902,7 +1902,8 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
       if (s.ok()) {
         descriptor_file->SetPreallocationBlockSize(
             db_options_->manifest_preallocation_size);
-        descriptor_log_.reset(new log::Writer(std::move(descriptor_file)));
+        descriptor_log_.reset(new log::Writer(db_options_,
+					      std::move(descriptor_file), 0));
         s = WriteSnapshot(descriptor_log_.get());
       }
     }

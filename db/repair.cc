@@ -405,7 +405,7 @@ class Repairer {
 
     //fprintf(stderr, "NewDescriptor:\n%s\n", edit_.DebugString().c_str());
     {
-      log::Writer log(std::move(file));
+      log::Writer log(&options_, std::move(file), 0);
       std::string record;
       edit_->EncodeTo(&record);
       status = log.AddRecord(record);
