@@ -322,6 +322,10 @@ unsigned int Reader::ReadPhysicalRecord(Slice* result) {
 	if (try_recycled && db_options_)
 	  Log(InfoLogLevel::INFO_LEVEL, db_options_->info_log,
 	      "ReadPhysicalRecord file is recycled; using alt CRC\n");
+	if (true && db_options_)
+	  Log(InfoLogLevel::INFO_LEVEL, db_options_->info_log,
+	      "ReadPhysicalRecord stored %d expected %d actual %d on log %d\n",
+	      stored_crc, expected_crc, actual_crc, log_number_);
 	if (try_recycled && actual_crc == expected_crc) {
 	  // We failed the normal CRC but we matched a recycled CRC.. this
 	  // must be a recycled file.
