@@ -96,6 +96,7 @@ class Reader {
   Slice buffer_;
   bool eof_;   // Last Read() indicated EOF by returning < kBlockSize
   bool read_error_;   // Error occurred while reading from file
+  bool recycled_;     // true if current file was recycled
 
   // Offset of the file position indicator within the last block when an
   // EOF was detected.

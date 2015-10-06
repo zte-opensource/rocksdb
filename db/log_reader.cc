@@ -33,6 +33,7 @@ Reader::Reader(const DBOptions* opt, unique_ptr<SequentialFileReader>&& _file,
       buffer_(),
       eof_(false),
       read_error_(false),
+      recycled_(false),
       eof_offset_(0),
       last_record_offset_(0),
       end_of_buffer_offset_(0),
@@ -300,8 +301,20 @@ unsigned int Reader::ReadPhysicalRecord(Slice* result,
       size_t drop_size = buffer_.size();
       buffer_.clear();
       if (!eof_) {
-        ReportCorruption(drop_size, "bad record length");
-        return kBadRecord;
+        // If the log file is recycled, we can ignore any error
+        // here--we are probably seeing garbage from a previous
+        // incarnation of the log file.  Treat it as EOF.
+        //
+        // Note that in the case of kAbsoluteConsistency we rely on
+        // the file being truncated so that there is no trailing
+        // garbage.
+        if (recycled_ &&
+            wal_recovery_mode != WALRecoveryMode::kSkipAnyCorruptedRecords) {
+          return kEof;
+        } else {
+          ReportCorruption(drop_size, "bad record length");
+          return kBadRecord;
+        }
       }
       // If the end of the file has been reached without reading |length| bytes
       // of payload, assume the writer died in the middle of writing the record.
@@ -318,25 +331,61 @@ unsigned int Reader::ReadPhysicalRecord(Slice* result,
       // Skip zero length record without reporting any drops since
       // such records are produced by the mmap based writing code in
       // env_posix.cc that preallocates file regions.
+      //
       // NOTE: this should never happen in DB written by new RocksDB versions,
       // since we turn off mmap writes to manifest and log files
       buffer_.clear();
+      if (recycled_ &&
+          wal_recovery_mode != WALRecoveryMode::kSkipAnyCorruptedRecords) {
+        return kEof;
+      }
       return kBadRecord;
     }
 
     // Check crc
     if (checksum_) {
-      uint32_t expected_crc = crc32c::Unmask(DecodeFixed32(header));
       uint32_t actual_crc = crc32c::Value(header + 6, 1 + length);
+      uint32_t expected_crc = crc32c::Unmask(DecodeFixed32(header));
+      // Check for simple CRC (no log number) if this is the first
+      // record of the file.
+      bool try_recycled = false;
+      if (!recycled_ && last_record_offset_ == 0 &&
+          actual_crc != expected_crc) {
+        // It failed; try using modified (recycled) CRC
+        try_recycled = true;
+      }
+      if (recycled_ || try_recycled) {
+        expected_crc ^= static_cast<uint32_t>(log_number_);
+        if (try_recycled && db_options_) {
+          Log(InfoLogLevel::INFO_LEVEL, db_options_->info_log,
+              "ReadPhysicalRecord file is recycled; using alt CRC\n");
+          LogFlush(db_options_->info_log);
+        }
+        if (try_recycled && actual_crc == expected_crc) {
+          // We failed the normal CRC but we matched a recycled CRC.. this
+          // must be a recycled file.
+          recycled_ = true;
+        }
+      }
       if (actual_crc != expected_crc) {
         // Drop the rest of the buffer since "length" itself may have
         // been corrupted and if we trust it, we could find some
         // fragment of a real log record that just happens to look
         // like a valid log record.
-        size_t drop_size = buffer_.size();
-        buffer_.clear();
-        ReportCorruption(drop_size, "checksum mismatch");
-        return kBadRecord;
+        //
+        // If the log file is recycled, we can treat this like EOF--it
+        // is most likely a record from the previous incarnation of
+        // the log file.
+        if (recycled_ &&
+            wal_recovery_mode != WALRecoveryMode::kSkipAnyCorruptedRecords) {
+          buffer_.clear();
+          return kEof;
+        } else {
+          size_t drop_size = buffer_.size();
+          ReportCorruption(drop_size, "checksum mismatch");
+          buffer_.clear();
+          return kBadRecord;
+        }
       }
     }
 

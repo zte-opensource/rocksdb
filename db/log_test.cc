@@ -564,11 +564,19 @@ TEST_P(LogTest, ErrorJoinsRecords) {
     SetByte(offset, 'x');
   }
 
-  ASSERT_EQ("correct", Read());
-  ASSERT_EQ("EOF", Read());
-  size_t dropped = DroppedBytes();
-  ASSERT_LE(dropped, 2 * kBlockSize + 100);
-  ASSERT_GE(dropped, 2 * kBlockSize);
+  if (GetParam() == 0) {
+    ASSERT_EQ("correct", Read());
+    ASSERT_EQ("EOF", Read());
+    size_t dropped = DroppedBytes();
+    ASSERT_LE(dropped, 2 * kBlockSize + 100);
+    ASSERT_GE(dropped, 2 * kBlockSize);
+  } else {
+    // in the recycle case, we stop when we hit the first record that
+    // is not valid.
+    ASSERT_EQ("EOF", Read());
+    size_t dropped = DroppedBytes();
+    ASSERT_EQ(dropped, 0);
+  }
 }
 
 TEST_P(LogTest, ReadStart) { CheckInitialOffsetRecord(0, 0); }
@@ -671,7 +679,7 @@ TEST_P(LogTest, ClearEofError2) {
   ASSERT_EQ("OK", MatchError("read error"));
 }
 
-INSTANTIATE_TEST_CASE_P(bool, LogTest, ::testing::Values(0, 2));
+INSTANTIATE_TEST_CASE_P(Recycle, LogTest, ::testing::Values(0, 2));
 
 }  // namespace log
 }  // namespace rocksdb
