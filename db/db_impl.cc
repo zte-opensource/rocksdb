@@ -418,7 +418,7 @@ Status DBImpl::NewDB() {
     file->SetPreallocationBlockSize(db_options_.manifest_preallocation_size);
     unique_ptr<WritableFileWriter> file_writer(
         new WritableFileWriter(std::move(file), env_options));
-    log::Writer log(std::move(file_writer));
+    log::Writer log(&db_options_, std::move(file_writer), 0);
     std::string record;
     new_db.EncodeTo(&record);
     s = log.AddRecord(record);
@@ -1117,8 +1117,8 @@ Status DBImpl::RecoverLogFiles(const std::vector<uint64_t>& log_numbers,
     // paranoid_checks==false so that corruptions cause entire commits
     // to be skipped instead of propagating bad information (like overly
     // large sequence numbers).
-    log::Reader reader(std::move(file_reader), &reporter, true /*checksum*/,
-                       0 /*initial_offset*/);
+    log::Reader reader(&db_options_, std::move(file_reader), &reporter,
+                       true /*checksum*/, 0 /*initial_offset*/, log_number);
     Log(InfoLogLevel::INFO_LEVEL, db_options_.info_log,
         "Recovering log #%" PRIu64 " mode %d skip-recovery %d", log_number,
         db_options_.wal_recovery_mode, !continue_replay_log);
@@ -4070,7 +4070,8 @@ Status DBImpl::SwitchMemtable(ColumnFamilyData* cfd, WriteContext* context) {
                                          mutable_cf_options.write_buffer_size);
         unique_ptr<WritableFileWriter> file_writer(
             new WritableFileWriter(std::move(lfile), opt_env_opt));
-        new_log = new log::Writer(std::move(file_writer));
+        new_log = new log::Writer(&db_options_, std::move(file_writer),
+                                  new_log_number);
       }
     }
 
@@ -4682,8 +4683,10 @@ Status DB::Open(const DBOptions& db_options, const std::string& dbname,
       impl->logfile_number_ = new_log_number;
       unique_ptr<WritableFileWriter> file_writer(
           new WritableFileWriter(std::move(lfile), opt_env_options));
-      impl->logs_.emplace_back(new_log_number,
-                               new log::Writer(std::move(file_writer)));
+      impl->logs_.emplace_back(
+          new_log_number,
+          new log::Writer(&impl->db_options_, std::move(file_writer),
+                          new_log_number));
 
       // set column family handles
       for (auto cf : column_families) {

@@ -61,7 +61,7 @@ class FlushJobTest : public testing::Test {
     unique_ptr<WritableFileWriter> file_writer(
         new WritableFileWriter(std::move(file), EnvOptions()));
     {
-      log::Writer log(std::move(file_writer));
+      log::Writer log(&db_options_, std::move(file_writer), 0);
       std::string record;
       new_db.EncodeTo(&record);
       s = log.AddRecord(record);

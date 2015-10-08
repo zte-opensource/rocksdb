@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "rocksdb/env.h"
+#include "rocksdb/options.h"
 #include "util/coding.h"
 #include "util/crc32c.h"
 #include "util/file_reader_writer.h"
@@ -21,9 +22,11 @@ namespace log {
 Reader::Reporter::~Reporter() {
 }
 
-Reader::Reader(unique_ptr<SequentialFileReader>&& _file, Reporter* reporter,
-               bool checksum, uint64_t initial_offset)
-    : file_(std::move(_file)),
+Reader::Reader(const DBOptions* opt, unique_ptr<SequentialFileReader>&& _file,
+               Reporter* reporter, bool checksum, uint64_t initial_offset,
+               uint64_t log_num)
+    : db_options_(opt),
+      file_(std::move(_file)),
       reporter_(reporter),
       checksum_(checksum),
       backing_store_(new char[kBlockSize]),
@@ -33,7 +36,8 @@ Reader::Reader(unique_ptr<SequentialFileReader>&& _file, Reporter* reporter,
       eof_offset_(0),
       last_record_offset_(0),
       end_of_buffer_offset_(0),
-      initial_offset_(initial_offset) {}
+      initial_offset_(initial_offset),
+      log_number_(log_num) {}
 
 Reader::~Reader() {
   delete[] backing_store_;

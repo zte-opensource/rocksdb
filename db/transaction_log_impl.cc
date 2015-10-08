@@ -262,8 +262,9 @@ Status TransactionLogIteratorImpl::OpenLogReader(const LogFile* logFile) {
     return s;
   }
   assert(file);
-  currentLogReader_.reset(new log::Reader(std::move(file), &reporter_,
-                                          read_options_.verify_checksums_, 0));
+  currentLogReader_.reset(new log::Reader(options_, std::move(file), &reporter_,
+                                          read_options_.verify_checksums_, 0,
+                                          logFile->LogNumber()));
   return Status::OK();
 }
 }  //  namespace rocksdb

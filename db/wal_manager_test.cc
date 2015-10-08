@@ -77,7 +77,8 @@ class WalManagerTest : public testing::Test {
     ASSERT_OK(env_->NewWritableFile(fname, &file, env_options_));
     unique_ptr<WritableFileWriter> file_writer(
         new WritableFileWriter(std::move(file), env_options_));
-    current_log_writer_.reset(new log::Writer(std::move(file_writer)));
+    current_log_writer_.reset(
+        new log::Writer(&db_options_, std::move(file_writer), 0));
   }
 
   void CreateArchiveLogs(int num_logs, int entries_per_log) {
@@ -127,7 +128,7 @@ TEST_F(WalManagerTest, ReadFirstRecordCache) {
 
   unique_ptr<WritableFileWriter> file_writer(
       new WritableFileWriter(std::move(file), EnvOptions()));
-  log::Writer writer(std::move(file_writer));
+  log::Writer writer(&db_options_, std::move(file_writer), 1);
   WriteBatch batch;
   batch.Put("foo", "bar");
   WriteBatchInternal::SetSequence(&batch, 10);

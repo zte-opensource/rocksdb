@@ -18,6 +18,7 @@
 namespace rocksdb {
 
 class SequentialFileReader;
+struct DBOptions;
 using std::unique_ptr;
 
 namespace log {
@@ -51,8 +52,9 @@ class Reader {
   //
   // The Reader will start reading at the first record located at physical
   // position >= initial_offset within the file.
-  Reader(unique_ptr<SequentialFileReader>&& file, Reporter* reporter,
-         bool checksum, uint64_t initial_offset);
+  Reader(const DBOptions* opt, unique_ptr<SequentialFileReader>&& file,
+         Reporter* reporter, bool checksum, uint64_t initial_offset,
+         uint64_t log_num);
 
   ~Reader();
 
@@ -84,6 +86,7 @@ class Reader {
   SequentialFileReader* file() { return file_.get(); }
 
  private:
+  const DBOptions* db_options_;
   const unique_ptr<SequentialFileReader> file_;
   Reporter* const reporter_;
   bool const checksum_;
@@ -103,6 +106,9 @@ class Reader {
 
   // Offset at which to start looking for the first record to return
   uint64_t const initial_offset_;
+
+  // which log number this is
+  uint64_t const log_number_;
 
   // Extend record types with the following special values
   enum {

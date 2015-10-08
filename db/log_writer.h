@@ -19,6 +19,7 @@
 namespace rocksdb {
 
 class WritableFileWriter;
+struct DBOptions;
 
 using std::unique_ptr;
 
@@ -63,7 +64,8 @@ class Writer {
   // Create a writer that will append data to "*dest".
   // "*dest" must be initially empty.
   // "*dest" must remain live while this Writer is in use.
-  explicit Writer(unique_ptr<WritableFileWriter>&& dest);
+  explicit Writer(const DBOptions* opt, unique_ptr<WritableFileWriter>&& dest,
+                  uint64_t log_number);
   ~Writer();
 
   Status AddRecord(const Slice& slice);
@@ -72,8 +74,10 @@ class Writer {
   const WritableFileWriter* file() const { return dest_.get(); }
 
  private:
+  const DBOptions* db_options_;
   unique_ptr<WritableFileWriter> dest_;
   int block_offset_;       // Current offset in block
+  uint64_t log_number_;
 
   // crc32c values for all supported record types.  These are
   // pre-computed to reduce the overhead of computing the crc of the
