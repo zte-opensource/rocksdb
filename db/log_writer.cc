@@ -93,8 +93,15 @@ Status Writer::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n) {
 
   // Compute the crc of the record type and the payload.
   uint32_t crc = crc32c::Extend(type_crc_[t], ptr, n);
-  crc = crc32c::Mask(crc);                 // Adjust for storage
-  EncodeFixed32(buf, crc);
+  if (recycle_log_files_) {
+    // XOR in log number
+    uint32_t final_crc = crc ^ static_cast<uint32_t>(log_number_);
+    final_crc = crc32c::Mask(final_crc);  // Adjust for storage
+    EncodeFixed32(buf, final_crc);
+  } else {
+    crc = crc32c::Mask(crc);  // Adjust for storage
+    EncodeFixed32(buf, crc);
+  }
 
   // Write the header and the payload
   Status s = dest_->Append(Slice(buf, kHeaderSize));
