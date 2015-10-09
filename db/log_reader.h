@@ -122,7 +122,9 @@ class Reader {
     // * The record has an invalid CRC (ReadPhysicalRecord reports a drop)
     // * The record is a 0-length record (No drop is reported)
     // * The record is below constructor's initial_offset (No drop is reported)
-    kBadRecord = kMaxRecordType + 2
+    kBadRecord = kMaxRecordType + 2,
+    // Returned when we fail to read a valid header.
+    kBadHeader = kMaxRecordType + 3,
   };
 
   // Skips all blocks that are completely before "initial_offset_".

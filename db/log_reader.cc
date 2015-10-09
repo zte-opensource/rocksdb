@@ -143,6 +143,13 @@ bool Reader::ReadRecord(Slice* record, std::string* scratch,
         }
         break;
 
+      case kBadHeader:
+	if (wal_recovery_mode == WALRecoveryMode::kAbsoluteConsistency) {
+	  // in clean shutdown we don't expect any error in the log files
+	  ReportCorruption(buffer_.size(), "truncated header");
+	}
+	// fall-thru
+
       case kEof:
         if (in_fragmented_record) {
           if (wal_recovery_mode == WALRecoveryMode::kAbsoluteConsistency) {
@@ -281,11 +288,10 @@ unsigned int Reader::ReadPhysicalRecord(Slice* result,
         //  end of the file, which can be caused by the writer crashing in the
         //  middle of writing the header. Unless explicitly requested we don't
         //  considering this an error, just report EOF.
-        if (buffer_.size() &&
-            wal_recovery_mode == WALRecoveryMode::kAbsoluteConsistency) {
-          // in clean shutdown we don't expect any error in the log files
-          ReportCorruption(buffer_.size(), "truncated header");
-        }
+        if (buffer_.size()) {
+	  buffer_.clear();
+	  return kBadHeader;
+	}
         buffer_.clear();
         return kEof;
       }
