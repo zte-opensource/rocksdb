@@ -19,8 +19,10 @@ namespace rocksdb {
 namespace log {
 
 Writer::Writer(unique_ptr<WritableFileWriter>&& dest,
-               uint64_t log_number, bool recycle_log_files)
-    : dest_(std::move(dest)),
+               uint64_t log_number, bool recycle_log_files,
+	       const DBOptions *opt)
+    : db_options_(opt),
+      dest_(std::move(dest)),
       block_offset_(0),
       log_number_(log_number),
       recycle_log_files_(recycle_log_files) {

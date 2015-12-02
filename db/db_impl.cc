@@ -4255,8 +4255,10 @@ Status DBImpl::SwitchMemtable(ColumnFamilyData* cfd, WriteContext* context) {
                                          mutable_cf_options.write_buffer_size);
         unique_ptr<WritableFileWriter> file_writer(
             new WritableFileWriter(std::move(lfile), opt_env_opt));
-        new_log = new log::Writer(std::move(file_writer), new_log_number,
-                                  db_options_.recycle_log_file_num > 0);
+        new_log = new log::Writer(std::move(file_writer),
+				  new_log_number,
+                                  db_options_.recycle_log_file_num > 0,
+				  &db_options);
       }
     }
 
