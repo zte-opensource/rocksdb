@@ -1128,7 +1128,8 @@ Status DBImpl::RecoverLogFiles(const std::vector<uint64_t>& log_numbers,
     // to be skipped instead of propagating bad information (like overly
     // large sequence numbers).
     log::Reader reader(db_options_.info_log, std::move(file_reader), &reporter,
-                       true /*checksum*/, 0 /*initial_offset*/, log_number);
+                       true /*checksum*/, 0 /*initial_offset*/, log_number,
+		       &db_options_);
     Log(InfoLogLevel::INFO_LEVEL, db_options_.info_log,
         "Recovering log #%" PRIu64 " mode %d skip-recovery %d", log_number,
         db_options_.wal_recovery_mode, !continue_replay_log);
@@ -4258,7 +4259,7 @@ Status DBImpl::SwitchMemtable(ColumnFamilyData* cfd, WriteContext* context) {
         new_log = new log::Writer(std::move(file_writer),
 				  new_log_number,
                                   db_options_.recycle_log_file_num > 0,
-				  &db_options);
+				  &db_options_);
       }
     }
 
@@ -4938,7 +4939,8 @@ Status DB::Open(const DBOptions& db_options, const std::string& dbname,
       impl->logs_.emplace_back(
           new_log_number,
           new log::Writer(std::move(file_writer), new_log_number,
-                          impl->db_options_.recycle_log_file_num > 0));
+                          impl->db_options_.recycle_log_file_num > 0,
+			  &impl->db_options_));
 
       // set column family handles
       for (auto cf : column_families) {

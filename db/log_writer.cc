@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include "rocksdb/env.h"
+#include "rocksdb/options.h"
 #include "util/coding.h"
 #include "util/crc32c.h"
 #include "util/file_reader_writer.h"
@@ -123,6 +124,14 @@ Status Writer::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n) {
   crc = crc32c::Extend(crc, ptr, n);
   crc = crc32c::Mask(crc);  // Adjust for storage
   EncodeFixed32(buf, crc);
+
+  if (db_options_)
+    Log(InfoLogLevel::INFO_LEVEL, db_options_->info_log,
+	"EmitPhysicalRecord: log %lld offset %lld len %d crc %d",
+	(unsigned long long)log_number_,
+	(unsigned long long)dest_->GetFileSize(),
+	(int)header_size + (int)n,
+	crc);
 
   // Write the header and the payload
   Status s = dest_->Append(Slice(buf, header_size));

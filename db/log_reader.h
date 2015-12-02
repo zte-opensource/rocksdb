@@ -19,6 +19,7 @@
 namespace rocksdb {
 
 class SequentialFileReader;
+class DBOptions;
 class Logger;
 using std::unique_ptr;
 
@@ -56,7 +57,8 @@ class Reader {
   Reader(std::shared_ptr<Logger> info_log,
 	 unique_ptr<SequentialFileReader>&& file,
          Reporter* reporter, bool checksum, uint64_t initial_offset,
-         uint64_t log_num);
+         uint64_t log_num,
+	 const DBOptions *opt = NULL);
 
   ~Reader();
 
@@ -89,6 +91,7 @@ class Reader {
   SequentialFileReader* file() { return file_.get(); }
 
  private:
+  const DBOptions *db_options_;
   std::shared_ptr<Logger> info_log_;
   const unique_ptr<SequentialFileReader> file_;
   Reporter* const reporter_;
