@@ -432,7 +432,7 @@ unsigned int Reader::ReadPhysicalRecord(Slice* result, size_t* drop_size) {
     }
 
     if (db_options_)
-      Log(InfoLogLevel::INFO_LEVEL, db_options_->info_log,
+      Log(InfoLogLevel::DEBUG_LEVEL, db_options_->info_log,
 	"ReadPhysicalRecord: log %lld offset %lld len %d crc %d type %d",
 	  (unsigned long long)log_number_,
 	  (unsigned long long)(end_of_buffer_offset_ - buffer_.size() -

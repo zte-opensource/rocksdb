@@ -126,7 +126,7 @@ Status Writer::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n) {
   EncodeFixed32(buf, crc);
 
   if (db_options_)
-    Log(InfoLogLevel::INFO_LEVEL, db_options_->info_log,
+    Log(InfoLogLevel::DEBUG_LEVEL, db_options_->info_log,
 	"EmitPhysicalRecord: log %lld offset %lld len %d crc %d",
 	(unsigned long long)log_number_,
 	(unsigned long long)dest_->GetFileSize(),
