@@ -22,9 +22,12 @@ Reader::Reporter::~Reporter() {
 }
 
 Reader::Reader(std::shared_ptr<Logger> info_log,
-               unique_ptr<SequentialFileReader>&& _file, Reporter* reporter,
-               bool checksum, uint64_t initial_offset, uint64_t log_num)
-    : info_log_(info_log),
+	       unique_ptr<SequentialFileReader>&& _file,
+               Reporter* reporter, bool checksum, uint64_t initial_offset,
+               uint64_t log_num,
+	       const DBOptions *opt)
+    : db_options_(opt),
+      info_log_(info_log),
       file_(std::move(_file)),
       reporter_(reporter),
       checksum_(checksum),
@@ -410,9 +413,10 @@ unsigned int Reader::ReadPhysicalRecord(Slice* result, size_t* drop_size) {
     }
 
     // Check crc
+    uint32_t actual_crc = 0;
     if (checksum_) {
       uint32_t expected_crc = crc32c::Unmask(DecodeFixed32(header));
-      uint32_t actual_crc = crc32c::Value(header + 6, length + header_size - 6);
+      actual_crc = crc32c::Value(header + 6, length + header_size - 6);
       if (actual_crc != expected_crc) {
         // Drop the rest of the buffer since "length" itself may have
         // been corrupted and if we trust it, we could find some
@@ -433,6 +437,15 @@ unsigned int Reader::ReadPhysicalRecord(Slice* result, size_t* drop_size) {
       return kBadRecord;
     }
 
+    if (db_options_)
+      Log(InfoLogLevel::DEBUG_LEVEL, db_options_->info_log,
+	"ReadPhysicalRecord: log %lld offset %lld len %d crc %d type %d",
+	  (unsigned long long)log_number_,
+	  (unsigned long long)(end_of_buffer_offset_ - buffer_.size() -
+			       header_size - length),
+	  (int)header_size + (int)length, crc32c::Mask(actual_crc),
+	  type);
+    
     *result = Slice(header + header_size, length);
     return type;
   }
