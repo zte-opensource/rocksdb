@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include "rocksdb/env.h"
+#include "rocksdb/options.h"
 #include "util/coding.h"
 #include "util/crc32c.h"
 #include "util/file_reader_writer.h"
@@ -19,8 +20,10 @@ namespace rocksdb {
 namespace log {
 
 Writer::Writer(unique_ptr<WritableFileWriter>&& dest,
-               uint64_t log_number, bool recycle_log_files)
-    : dest_(std::move(dest)),
+               uint64_t log_number, bool recycle_log_files,
+	       const DBOptions *opt)
+    : db_options_(opt),
+      dest_(std::move(dest)),
       block_offset_(0),
       log_number_(log_number),
       recycle_log_files_(recycle_log_files) {
@@ -121,6 +124,14 @@ Status Writer::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n) {
   crc = crc32c::Extend(crc, ptr, n);
   crc = crc32c::Mask(crc);  // Adjust for storage
   EncodeFixed32(buf, crc);
+
+  if (db_options_)
+    Log(InfoLogLevel::DEBUG_LEVEL, db_options_->info_log,
+	"EmitPhysicalRecord: log %lld offset %lld len %d crc %d",
+	(unsigned long long)log_number_,
+	(unsigned long long)dest_->GetFileSize(),
+	(int)header_size + (int)n,
+	crc);
 
   // Write the header and the payload
   Status s = dest_->Append(Slice(buf, header_size));
