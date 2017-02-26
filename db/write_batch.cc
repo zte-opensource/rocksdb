@@ -1244,7 +1244,7 @@ void WriteBatchInternal::SetContents(WriteBatch* b, const Slice& contents) {
   b->content_flags_.store(ContentFlags::DEFERRED, std::memory_order_relaxed);
 }
 
-void WriteBatchInternal::Append(WriteBatch* dst, const WriteBatch* src) {
+void WriteBatchInternal::Append(WriteBatch* dst, WriteBatch* src) {
   SetCount(dst, Count(dst) + Count(src));
   assert(src->rep_.size() >= WriteBatchInternal::kHeader);
   dst->rep_.append(src->rep_.data() + WriteBatchInternal::kHeader,
@@ -1262,6 +1262,10 @@ size_t WriteBatchInternal::AppendedByteSize(size_t leftByteSize,
   } else {
     return leftByteSize + rightByteSize - WriteBatchInternal::kHeader;
   }
+}
+
+void WriteBatch::Append(WriteBatch& src) {
+  WriteBatchInternal::Append(this, &src);
 }
 
 }  // namespace rocksdb

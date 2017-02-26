@@ -109,6 +109,7 @@ class WriteBatch : public WriteBatchBase {
   void Merge(const Slice& key, const Slice& value) override {
     Merge(nullptr, key, value);
   }
+  void Append(WriteBatch& src);
 
   // variant that takes SliceParts
   void Merge(ColumnFamilyHandle* column_family, const SliceParts& key,
