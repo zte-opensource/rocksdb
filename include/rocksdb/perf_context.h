@@ -24,6 +24,7 @@ struct PerfContext {
   std::string ToString(bool exclude_zero_counters = false) const;
 
   uint64_t user_key_comparison_count; // total number of user key comparisons
+  uint64_t user_key_comparison_time;
   uint64_t block_cache_hit_count;     // total number of block cache hits
   uint64_t block_read_count;          // total number of block reads (with IO)
   uint64_t block_read_byte;           // total number of bytes from block reads

@@ -121,6 +121,24 @@ int InternalKeyComparator::Compare(const ParsedInternalKey& a,
   return r;
 }
 
+int InternalKeyComparator::Compare(const Slice& a,
+                                   const ParsedInternalKey& b) const {
+  // Order by:
+  //    increasing user key (according to user-supplied comparator)
+  //    decreasing sequence number
+  int r = user_comparator_->Compare(ExtractUserKey(a), b.user_key);
+  PERF_COUNTER_ADD(user_key_comparison_count, 1);
+  if (r == 0) {
+    const uint64_t anum = DecodeFixed64(a.data() + a.size() - 8);
+    if (anum > b.sequence) {
+      r = -1;
+    } else if (anum < b.sequence) {
+      r = +1;
+    }
+  }
+  return r;
+}
+
 void InternalKeyComparator::FindShortestSeparator(
       std::string* start,
       const Slice& limit) const {

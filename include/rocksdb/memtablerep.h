@@ -46,6 +46,7 @@ class Arena;
 class MemTableAllocator;
 class LookupKey;
 class Slice;
+class ParsedInternalKey;
 class SliceTransform;
 class Logger;
 
@@ -64,6 +65,9 @@ class MemTableRep {
 
     virtual int operator()(const char* prefix_len_key,
                            const Slice& key) const = 0;
+
+    virtual int operator()(const char* prefix_len_key,
+                           const ParsedInternalKey& key) const = 0;
 
     virtual ~KeyComparator() { }
   };

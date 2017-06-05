@@ -24,6 +24,7 @@ namespace rocksdb {
 void PerfContext::Reset() {
 #if !defined(NPERF_CONTEXT) && !defined(IOS_CROSS_COMPILE)
   user_key_comparison_count = 0;
+  user_key_comparison_time = 0;
   block_cache_hit_count = 0;
   block_read_count = 0;
   block_read_byte = 0;
@@ -101,6 +102,7 @@ std::string PerfContext::ToString(bool exclude_zero_counters) const {
 #else
   std::ostringstream ss;
   PERF_CONTEXT_OUTPUT(user_key_comparison_count);
+  PERF_CONTEXT_OUTPUT(user_key_comparison_time);
   PERF_CONTEXT_OUTPUT(block_cache_hit_count);
   PERF_CONTEXT_OUTPUT(block_read_count);
   PERF_CONTEXT_OUTPUT(block_read_byte);

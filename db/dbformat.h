@@ -149,6 +149,7 @@ class InternalKeyComparator : public Comparator {
 
   int Compare(const InternalKey& a, const InternalKey& b) const;
   int Compare(const ParsedInternalKey& a, const ParsedInternalKey& b) const;
+  int Compare(const Slice& a, const ParsedInternalKey& b) const;
 };
 
 // Modules in this directory should keep internal keys wrapped inside

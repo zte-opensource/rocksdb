@@ -200,17 +200,93 @@ void MemTable::UpdateFlushState() {
 int MemTable::KeyComparator::operator()(const char* prefix_len_key1,
                                         const char* prefix_len_key2) const {
   // Internal keys are encoded as length-prefixed strings.
+  PERF_COUNTER_ADD(user_key_comparison_count, 1);
+  PERF_TIMER_GUARD(user_key_comparison_time);
+  PERF_TIMER_START(user_key_comparison_time);
   Slice k1 = GetLengthPrefixedSlice(prefix_len_key1);
   Slice k2 = GetLengthPrefixedSlice(prefix_len_key2);
-  return comparator.Compare(k1, k2);
+  int r = comparator.Compare(k1, k2);
+
+/*  char l1 = *prefix_len_key1 - 8;
+  char l2 = *prefix_len_key2 - 8;
+  size_t min_len = (l1 < l2) ? l1 : l2;
+  int r = memcmp(prefix_len_key1+1, prefix_len_key2+1, min_len);
+
+  if (r == 0) {
+    if (l1 < l2) r = -1;
+    else if (l1 > l2) r = +1;
+    else {
+      uint64_t anum = *(uint64_t*)prefix_len_key1 + l1 + 1;
+      uint64_t bnum = *(uint64_t*)prefix_len_key2 + l1 + 1;
+    if (anum > bnum) {
+      r = -1;
+    } else if (anum < bnum) {
+      r = +1;
+    }
+*/
+/*      const char* end = prefix_len_key1 + l1;
+      const char* pos2 = prefix_len_key2 + l2 + 8;
+      for(const char* pos = end + 8; pos != end; --pos, --pos2 ){
+        if (*pos < *pos2) {
+          r = -1;
+          break;
+        } else if (*pos > *pos2) {
+          r = +1;
+          break;
+        }
+      }*/
+/*    }
+  }*/
+  PERF_TIMER_STOP(user_key_comparison_time);
+  return r;
 }
 
 int MemTable::KeyComparator::operator()(const char* prefix_len_key,
                                         const Slice& key)
     const {
+  PERF_COUNTER_ADD(user_key_comparison_count, 1);
+  PERF_TIMER_GUARD(user_key_comparison_time);
+  PERF_TIMER_START(user_key_comparison_time);
   // Internal keys are encoded as length-prefixed strings.
   Slice a = GetLengthPrefixedSlice(prefix_len_key);
-  return comparator.Compare(a, key);
+  int r = comparator.Compare(a, key);
+/*  char l1 = *prefix_len_key - 8;
+  char l2 = key.size() - 8;
+  size_t min_len = (l1 < l2) ? l1 : l2;
+  int r = memcmp(prefix_len_key+1, key.data(), min_len);
+
+  if (r == 0) {
+    if (l1 < l2) r = -1;
+    else if (l1 > l2) r = +1;
+    else {
+      const char* end = prefix_len_key + l1;
+      const char* pos2 = key.data() + key.size() + 8;
+      for(const char* pos = end + 8; pos != end; --pos, --pos2 ){
+        if (*pos < *pos2) {
+          r = -1;
+          break;
+        } else if (*pos > *pos2) {
+          r = +1;
+          break;
+        }
+      }
+    }
+  }*/
+
+  PERF_TIMER_STOP(user_key_comparison_time);
+  return r;
+}
+
+int MemTable::KeyComparator::operator()(const char* prefix_len_key,
+                                        const ParsedInternalKey& key)
+    const {
+  PERF_TIMER_GUARD(user_key_comparison_time);
+  PERF_TIMER_START(user_key_comparison_time);
+  // Internal keys are encoded as length-prefixed strings.
+  Slice k1 = GetLengthPrefixedSlice(prefix_len_key);
+  int r = comparator.Compare(k1, key);
+  PERF_TIMER_STOP(user_key_comparison_time);
+  return r;
 }
 
 Slice MemTableRep::UserKey(const char* key) const {
