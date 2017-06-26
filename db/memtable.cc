@@ -200,14 +200,20 @@ void MemTable::UpdateFlushState() {
 int MemTable::KeyComparator::operator()(const char* prefix_len_key1,
                                         const char* prefix_len_key2) const {
   // Internal keys are encoded as length-prefixed strings.
-  PERF_COUNTER_ADD(user_key_comparison_count, 1);
-  PERF_TIMER_GUARD(user_key_comparison_time);
-  PERF_TIMER_START(user_key_comparison_time);
   Slice k1 = GetLengthPrefixedSlice(prefix_len_key1);
   Slice k2 = GetLengthPrefixedSlice(prefix_len_key2);
-  int r = comparator.Compare(k1, k2);
+  return comparator.Compare(k1, k2);
+}
 
-/*  char l1 = *prefix_len_key1 - 8;
+#ifdef NEVER_DEFINED
+int MemTable::KeyComparator::operator()(const char* prefix_len_key1,
+                                        const char* prefix_len_key2) const {
+  // Internal keys are encoded as length-prefixed strings.
+/*  PERF_COUNTER_ADD(user_key_comparison_count, 1);
+  PERF_TIMER_GUARD(user_key_comparison_time);
+  PERF_TIMER_START(user_key_comparison_time);
+*/
+  char l1 = *prefix_len_key1 - 8;
   char l2 = *prefix_len_key2 - 8;
   size_t min_len = (l1 < l2) ? l1 : l2;
   int r = memcmp(prefix_len_key1+1, prefix_len_key2+1, min_len);
@@ -216,17 +222,112 @@ int MemTable::KeyComparator::operator()(const char* prefix_len_key1,
     if (l1 < l2) r = -1;
     else if (l1 > l2) r = +1;
     else {
-      uint64_t anum = *(uint64_t*)prefix_len_key1 + l1 + 1;
-      uint64_t bnum = *(uint64_t*)prefix_len_key2 + l1 + 1;
-    if (anum > bnum) {
-      r = -1;
-    } else if (anum < bnum) {
-      r = +1;
-    }
-*/
+//      uint64_t anum = *(uint64_t*)(prefix_len_key1 + l1 + 1);
+//      uint64_t bnum = *(uint64_t*)(prefix_len_key2 + l1 + 1);
+//    if (anum > bnum) {
+//      r = -1;
+//    } else if (anum < bnum) {
+//      r = +1;
+//    }
+      const unsigned char* pos = (const unsigned char*)prefix_len_key1 + l1 + 8;
+      const unsigned char* pos2 = (const unsigned char*)prefix_len_key2 + l2 + 8;
+        if (*pos > *pos2) {
+
+//if( r != -1 ) {
+//printf( "%d vs %d, pos:%d %d ? %d\n", r, -1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+//}
+          return -1;
+        } else if (*pos < *pos2) {
+          return +1;
+        }
+        --pos; --pos2;
+        if (*pos > *pos2) {
+//if( r != -1 ) {
+//printf( "%d vs %d, pos:%d %d ? %d\n", r, -1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+//}
+          return -1;
+        } else if (*pos < *pos2) {
+//if( r != 1 ) {
+//printf( "%d vs %d, pos:%d %d ? %d\n", r, 1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+//}
+          return +1;
+        }
+        --pos; --pos2;
+        if (*pos > *pos2) {
+//if( r != -1 ) {
+//printf( "%d vs %d, pos:%d %d ? %d\n", r, -1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+//}
+          return -1;
+        } else if (*pos < *pos2) {
+//if( r != 1 ) {
+//printf( "%d vs %d, pos:%d %d ? %d\n", r, 1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+//}
+          return +1;
+        }
+        --pos; --pos2;
+        if (*pos > *pos2) {
+//if( r != -1 ) {
+//printf( "%d vs %d, pos:%d %d ? %d\n", r, -1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+//}
+          return -1;
+        } else if (*pos < *pos2) {
+//if( r != 1 ) {
+//printf( "%d vs %d, pos:%d %d ? %d\n", r, 1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+//}
+          return +1;
+        }
+        --pos; --pos2;
+        if (*pos > *pos2) {
+//if( r != -1 ) {
+//printf( "%d vs %d, pos:%d %d ? %d\n", r, -1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+//}
+          return -1;
+        } else if (*pos < *pos2) {
+//if( r != 1 ) {
+//printf( "%d vs %d, pos:%d %d ? %d\n", r, 1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+//}
+          return +1;
+        }
+        --pos; --pos2;
+        if (*pos > *pos2) {
+//if( r != -1 ) {
+//printf( "%d vs %d, pos:%d %d ? %d\n", r, -1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+//}
+          return -1;
+        } else if (*pos < *pos2) {
+//if( r != 1 ) {
+//printf( "%d vs %d, pos:%d %d ? %d\n", r, 1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+//}
+          return +1;
+        }
+        --pos; --pos2;
+        if (*pos > *pos2) {
+//if( r != -1 ) {
+//printf( "%d vs %d, pos:%d %d ? %d\n", r, -1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+//}
+          return -1;
+        } else if (*pos < *pos2) {
+//if( r != 1 ) {
+//printf( "%d vs %d, pos:%d %d ? %d\n", r, 1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+//}
+          return +1;
+        }
+        --pos; --pos2;
+        if (*pos > *pos2) {
+/*if( r != -1 ) {
+printf( "%d vs %d, pos:%d %d ? %d\n", r, -1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+}*/
+          return -1;
+        } else if (*pos <*pos2) {
+/*if( r != 1 ) {
+printf( "%d vs %d, pos:%d %d ? %d\n", r, 1, (int) (pos - (const unsigned char*)prefix_len_key1 + l1 + 8), (int)*pos, (int)*pos2);
+}*/
+          return +1;
+        }
+
 /*      const char* end = prefix_len_key1 + l1;
       const char* pos2 = prefix_len_key2 + l2 + 8;
-      for(const char* pos = end + 8; pos != end; --pos, --pos2 ){
+      for(const char* pos = end + 8; pos != end; pos--, pos2-- ){
         if (*pos < *pos2) {
           r = -1;
           break;
@@ -235,11 +336,12 @@ int MemTable::KeyComparator::operator()(const char* prefix_len_key1,
           break;
         }
       }*/
-/*    }
-  }*/
-  PERF_TIMER_STOP(user_key_comparison_time);
+    }
+  }
+//  PERF_TIMER_STOP(user_key_comparison_time);
   return r;
 }
+#endif
 
 int MemTable::KeyComparator::operator()(const char* prefix_len_key,
                                         const Slice& key)
