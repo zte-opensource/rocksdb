@@ -352,9 +352,11 @@ static inline void Fast_CRC32(uint64_t* l, uint8_t const **p) {
   *l = _mm_crc32_u64(*l, LE_LOAD64(*p));
   *p += 8;
 #else
+# error "Oops, __AVX2__ and _WIN64 are NOT defined. Going Slow_CRC32()!"
   Slow_CRC32(l, p);
 #endif
 #else
+# error "Oops, __SSE4_2__ is NOT defined. Going Slow_CRC32()!"
   Slow_CRC32(l, p);
 #endif
 }
