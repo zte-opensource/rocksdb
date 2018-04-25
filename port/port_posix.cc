@@ -188,6 +188,8 @@ int GetMaxOpenFiles() {
 void *cacheline_aligned_alloc(size_t size) {
 #if __GNUC__ < 5 && defined(__SANITIZE_ADDRESS__)
   return malloc(size);
+#elif __cplusplus >= 201703
+  return ::operator new(size, std::align_val_t(CACHE_LINE_SIZE));
 #elif defined(_ISOC11_SOURCE)
   return aligned_alloc(CACHE_LINE_SIZE, size);
 #elif ( _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600 || defined(__APPLE__))
@@ -200,7 +202,13 @@ void *cacheline_aligned_alloc(size_t size) {
 }
 
 void cacheline_aligned_free(void *memblock) {
+#if __GNUC__ < 5 && defined(__SANITIZE_ADDRESS__)
   free(memblock);
+#elif __cplusplus >= 201703
+  return ::operator delete(memblock, std::align_val_t(CACHE_LINE_SIZE));
+#else
+  free(memblock);
+#endif
 }
 
 
