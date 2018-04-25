@@ -189,6 +189,7 @@ void *cacheline_aligned_alloc(size_t size) {
 #if __GNUC__ < 5 && defined(__SANITIZE_ADDRESS__)
   return malloc(size);
 #elif __cplusplus >= 201703
+  #error aligned_alloc
   return ::operator new(size, std::align_val_t(CACHE_LINE_SIZE));
 #elif defined(_ISOC11_SOURCE)
   return aligned_alloc(CACHE_LINE_SIZE, size);
