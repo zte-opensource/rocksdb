@@ -40,6 +40,11 @@ class CacheShard {
                                       bool thread_safe) = 0;
   virtual void EraseUnRefEntries() = 0;
   virtual std::string GetPrintableOptions() const { return ""; }
+
+  virtual void SetBinCount(uint64_t count) = 0;
+  virtual void RotateBins() = 0;
+  virtual size_t GetBinnedUsage(uint64_t bin) const = 0;
+  virtual size_t GetBinnedUsage(uint64_t first_bin, uint64_t last_bin) const = 0;
 };
 
 // Generic cache interface which shards cache by hash of keys. 2^num_shard_bits
@@ -76,6 +81,12 @@ class ShardedCache : public Cache {
   virtual size_t GetPinnedUsage() const override;
   virtual size_t GetHighPriPoolUsage() const override = 0;
   virtual double GetHighPriPoolRatio() const override = 0;
+
+  // Aged based counter binning
+  virtual void SetBinCount(uint64_t count);
+  virtual void RotateBins();
+  virtual size_t GetBinnedUsage(uint64_t bin) const;
+  virtual size_t GetBinnedUsage(uint64_t first_bin, uint64_t last_bin) const;
 
   virtual void ApplyToAllCacheEntries(void (*callback)(void*, size_t),
                                       bool thread_safe) override;

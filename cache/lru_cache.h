@@ -9,6 +9,7 @@
 #pragma once
 
 #include <string>
+#include <deque>
 
 #include "cache/sharded_cache.h"
 
@@ -44,6 +45,7 @@ namespace rocksdb {
 // RUCache::Release (to move into state 2) or LRUCacheShard::Erase (for state 3)
 
 struct LRUHandle {
+  std::shared_ptr<size_t> cache_age_bin;  // cache age bin
   void* value;
   void (*deleter)(const Slice&, void* value);
   LRUHandle* next_hash;
@@ -211,6 +213,12 @@ class ALIGN_AS(CACHE_LINE_SIZE) LRUCacheShard : public CacheShard {
   virtual size_t GetHighPriPoolUsage() const;
   virtual double GetHighPriPoolRatio() const;
 
+  // Age binned byte counter methods
+  virtual void SetBinCount(uint64_t count) override;
+  virtual void RotateBins() override;
+  virtual size_t GetBinnedUsage(uint64_t bin) const override;
+  virtual size_t GetBinnedUsage(uint64_t first_bin, uint64_t last_bin) const override;
+
  private:
   void LRU_Remove(LRUHandle* e);
   void LRU_Insert(LRUHandle* e);
@@ -279,6 +287,10 @@ class ALIGN_AS(CACHE_LINE_SIZE) LRUCacheShard : public CacheShard {
   // We don't count mutex_ as the cache's internal state so semantically we
   // don't mind mutex_ invoking the non-const actions.
   mutable port::Mutex mutex_;
+
+  // Age binned cache byte counters
+  uint64_t bin_count_;
+  std::deque<std::shared_ptr<size_t>> age_bins_;
 };
 
 class LRUCache : public ShardedCache {
@@ -297,6 +309,7 @@ class LRUCache : public ShardedCache {
   virtual size_t GetHighPriPoolUsage() const override;
   virtual double GetHighPriPoolRatio() const override;
   virtual void SetHighPriPoolRatio(double high_pri_pool_ratio) override;
+
   // Retrieves number of elements in LRU, for unit test purpose only
   size_t TEST_GetLRUSize();
 

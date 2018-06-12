@@ -226,6 +226,18 @@ class Cache {
     return 0;
   }
 
+  // Set the maximum number of age bins to track
+  virtual void SetBinCount(uint64_t count) = 0;
+
+  // Add a new age bin and remove any bins over the bin count.
+  virtual void RotateBins() = 0;
+
+  // Get the byte usage for a given age bin.
+  virtual size_t GetBinnedUsage(uint64_t bin) const = 0;
+
+  // Get the byte usage for a given range of age bins.
+  virtual size_t GetBinnedUsage(uint64_t first_bin, uint64_t last_bin) const = 0;
+
   // Call this on shutdown if you want to speed it up. Cache will disown
   // any underlying data and will not free it on delete. This call will leak
   // memory - call this only if you're shutting down the process.

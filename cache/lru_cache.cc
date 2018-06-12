@@ -107,12 +107,15 @@ LRUCacheShard::LRUCacheShard(size_t capacity, bool strict_capacity_limit,
       high_pri_pool_ratio_(high_pri_pool_ratio),
       high_pri_pool_capacity_(0),
       usage_(0),
-      lru_usage_(0) {
+      lru_usage_(0),
+      bin_count_(1),
+      age_bins_() {
   // Make empty circular linked list
   lru_.next = &lru_;
   lru_.prev = &lru_;
   lru_low_pri_ = &lru_;
   SetCapacity(capacity);
+  RotateBins();
 }
 
 LRUCacheShard::~LRUCacheShard() {}
@@ -180,6 +183,48 @@ double LRUCacheShard::GetHighPriPoolRatio() const{
   return high_pri_pool_ratio_;
 }
 
+void LRUCacheShard::SetBinCount(uint64_t count) {
+  MutexLock l(&mutex_);
+  if (count > 0) {
+    bin_count_ = count;
+  }
+}
+
+void LRUCacheShard::RotateBins() {
+  MutexLock l(&mutex_);
+  age_bins_.push_front(std::make_shared<size_t>(0));
+  age_bins_.resize(bin_count_);
+}
+
+size_t LRUCacheShard::GetBinnedUsage(uint64_t bin) const {
+  MutexLock l(&mutex_);
+  // Bin out of range, ie no data.
+  if (bin > age_bins_.size() - 1) {
+    return 0;
+  }
+  return *(age_bins_[bin]);
+}
+
+size_t LRUCacheShard::GetBinnedUsage(uint64_t first_bin, uint64_t last_bin) const {
+  MutexLock l(&mutex_);
+
+  // first bin out of range, return 0
+  if (first_bin > age_bins_.size() - 1) {
+    return 0;
+  }
+
+  // last bin out of range, don't walk off the end.
+  if (last_bin > age_bins_.size() - 1) {
+    last_bin = age_bins_.size() - 1;
+  }
+
+  size_t bytes = 0;
+  for (uint64_t i = first_bin; i < last_bin; i++) {
+    bytes += *(age_bins_[i]);
+  }
+  return bytes;
+}
+
 void LRUCacheShard::LRU_Remove(LRUHandle* e) {
   assert(e->next != nullptr);
   assert(e->prev != nullptr);
@@ -193,6 +238,8 @@ void LRUCacheShard::LRU_Remove(LRUHandle* e) {
   if (e->InHighPriPool()) {
     assert(high_pri_pool_usage_ >= e->charge);
     high_pri_pool_usage_ -= e->charge;
+  } else {
+//    *(e->cache_age_bin) -= e->charge;
   }
 }
 
@@ -369,6 +416,9 @@ Status LRUCacheShard::Insert(const Slice& key, uint32_t hash, void* value,
   {
     MutexLock l(&mutex_);
 
+    // Set the current age_bin
+    e->cache_age_bin = age_bins_[0];
+
     // Free the space following strict LRU policy until enough space
     // is freed or the lru list is empty
     EvictFromLRU(charge, &last_reference_list);
@@ -390,6 +440,10 @@ Status LRUCacheShard::Insert(const Slice& key, uint32_t hash, void* value,
       // space was freed
       LRUHandle* old = table_.Insert(e);
       usage_ += e->charge;
+      // Count High Pri items separately 
+      if (!e->IsHighPri()) {
+        *(e->cache_age_bin) += e->charge;
+      }
       if (old != nullptr) {
         old->SetInCache(false);
         if (Unref(old)) {

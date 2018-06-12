@@ -315,6 +315,22 @@ class SimCacheImpl : public SimCache {
     return cache_activity_logger_.bg_status();
   }
 
+  virtual void SetBinCount(uint64_t count) override {
+    key_only_cache_->SetBinCount(count);
+  }
+
+  virtual void RotateBins() override {
+    key_only_cache_->RotateBins();
+  }
+
+  virtual size_t GetBinnedUsage(uint64_t bin) const override {
+    return key_only_cache_->GetBinnedUsage(bin);
+  }
+
+  virtual size_t GetBinnedUsage(uint64_t first_bin, uint64_t last_bin) const override {
+    return key_only_cache_->GetBinnedUsage(first_bin, last_bin);
+  }
+
  private:
   std::shared_ptr<Cache> cache_;
   std::shared_ptr<Cache> key_only_cache_;

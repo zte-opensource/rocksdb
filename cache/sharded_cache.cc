@@ -111,6 +111,39 @@ size_t ShardedCache::GetPinnedUsage() const {
   return usage;
 }
 
+// Aged based counter binning
+void ShardedCache::SetBinCount(uint64_t count) {
+  int num_shards = 1 << num_shard_bits_;
+  for (int s = 0; s < num_shards; s++) {
+    GetShard(s)->SetBinCount(count);
+  }
+}
+
+void ShardedCache::RotateBins() {
+  int num_shards = 1 << num_shard_bits_;
+  for (int s = 0; s < num_shards; s++) {
+    GetShard(s)->RotateBins();
+  }
+}
+
+size_t ShardedCache::GetBinnedUsage(uint64_t bin) const {
+  int num_shards = 1 << num_shard_bits_;
+  size_t usage = 0;
+  for (int s = 0; s < num_shards; s++) {
+    usage += GetShard(s)->GetBinnedUsage(bin);
+  }
+  return usage;
+}
+
+size_t ShardedCache::GetBinnedUsage(uint64_t first_bin, uint64_t last_bin) const {
+  int num_shards = 1 << num_shard_bits_;
+  size_t usage = 0;
+  for (int s = 0; s < num_shards; s++) {
+    usage += GetShard(s)->GetBinnedUsage(first_bin, last_bin);
+  }
+  return usage;
+}
+
 void ShardedCache::ApplyToAllCacheEntries(void (*callback)(void*, size_t),
                                           bool thread_safe) {
   int num_shards = 1 << num_shard_bits_;
