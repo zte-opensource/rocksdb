@@ -58,6 +58,8 @@ struct LRUHandle {
   //   in_cache:    whether this entry is referenced by the hash table.
   //   is_high_pri: whether this entry is high priority entry.
   //   in_high_pri_pool: whether this entry is in high-pri pool.
+  //   is_erased: whether this entry is erased (but may still have references!)
+  //   is_flagged_for_erasure: whether this entry is flagged for erasure
   char flags;
 
   uint32_t hash;     // Hash of key(); used for fast sharding and comparisons
@@ -78,6 +80,8 @@ struct LRUHandle {
   bool IsHighPri() { return flags & 2; }
   bool InHighPriPool() { return flags & 4; }
   bool HasHit() { return flags & 8; }
+  bool IsErased() { return flags & 16; }
+  bool IsFlaggedForErasure() { return flags & 32; }
 
   void SetInCache(bool in_cache) {
     if (in_cache) {
@@ -104,6 +108,22 @@ struct LRUHandle {
   }
 
   void SetHit() { flags |= 8; }
+
+  void SetErased(bool erased) {
+    if (erased) {
+      flags |= 16;
+    } else {
+      flags &= ~16;
+    }
+  }
+
+  void SetFlaggedForErasure(bool erased) {
+    if (erased) {
+      flags |= 32;
+    } else {
+      flags &= ~32;
+    }
+  }
 
   void Free() {
     assert((refs == 1 && InCache()) || (refs == 0 && !InCache()));
@@ -211,9 +231,12 @@ class ALIGN_AS(CACHE_LINE_SIZE) LRUCacheShard : public CacheShard {
   virtual size_t GetHighPriPoolUsage() const;
   virtual double GetHighPriPoolRatio() const;
 
+  virtual size_t GetErasedUsage() const;
+
  private:
   void LRU_Remove(LRUHandle* e);
   void LRU_Insert(LRUHandle* e);
+  void LRU_Demote(LRUHandle* e);
 
   // Overflow the last entry in high-pri pool to low-pri pool until size of
   // high-pri pool is no larger than the size specify by high_pri_pool_pct.
@@ -275,6 +298,9 @@ class ALIGN_AS(CACHE_LINE_SIZE) LRUCacheShard : public CacheShard {
   // Memory size for entries residing only in the LRU list
   size_t lru_usage_;
 
+  // Memory size for entries that will be erased
+  size_t erased_usage_;
+
   // mutex_ protects the following state.
   // We don't count mutex_ as the cache's internal state so semantically we
   // don't mind mutex_ invoking the non-const actions.
@@ -297,6 +323,8 @@ class LRUCache : public ShardedCache {
   virtual size_t GetHighPriPoolUsage() const override;
   virtual double GetHighPriPoolRatio() const override;
   virtual void SetHighPriPoolRatio(double high_pri_pool_ratio) override;
+
+  virtual size_t GetErasedUsage() const override;
   // Retrieves number of elements in LRU, for unit test purpose only
   size_t TEST_GetLRUSize();
 

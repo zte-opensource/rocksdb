@@ -107,7 +107,8 @@ LRUCacheShard::LRUCacheShard(size_t capacity, bool strict_capacity_limit,
       high_pri_pool_ratio_(high_pri_pool_ratio),
       high_pri_pool_capacity_(0),
       usage_(0),
-      lru_usage_(0) {
+      lru_usage_(0),
+      erased_usage_(0) {
   // Make empty circular linked list
   lru_.next = &lru_;
   lru_.prev = &lru_;
@@ -193,19 +194,36 @@ void LRUCacheShard::LRU_Remove(LRUHandle* e) {
   if (e->InHighPriPool()) {
     assert(high_pri_pool_usage_ >= e->charge);
     high_pri_pool_usage_ -= e->charge;
+    e->SetInHighPriPool(false);
+  }
+  if (e->IsFlaggedForErasure()) {
+   assert(erased_usage_ >= e->charge);
+   erased_usage_ -= e->charge;
+   e->SetFlaggedForErasure(false);
   }
 }
 
 void LRUCacheShard::LRU_Insert(LRUHandle* e) {
   assert(e->next == nullptr);
   assert(e->prev == nullptr);
-  if (high_pri_pool_ratio_ > 0 && (e->IsHighPri() || e->HasHit())) {
+  if (e->IsErased()) {
+    // Insert "e" to the tail of the LRU list.
+    e->next = lru_.next;
+    e->prev = &lru_;
+    e->prev->next = e;
+    e->next->prev = e;
+    e->SetInHighPriPool(false);
+    e->SetFlaggedForErasure(true);
+    lru_low_pri_ = e;
+    erased_usage_ += e->charge;
+  } else if (high_pri_pool_ratio_ > 0 && (e->IsHighPri() || e->HasHit())) {
     // Inset "e" to head of LRU list.
     e->next = &lru_;
     e->prev = lru_.prev;
     e->prev->next = e;
     e->next->prev = e;
     e->SetInHighPriPool(true);
+    e->SetFlaggedForErasure(false);
     high_pri_pool_usage_ += e->charge;
     MaintainPoolSize();
   } else {
@@ -216,9 +234,34 @@ void LRUCacheShard::LRU_Insert(LRUHandle* e) {
     e->prev->next = e;
     e->next->prev = e;
     e->SetInHighPriPool(false);
+    e->SetFlaggedForErasure(false);
     lru_low_pri_ = e;
   }
   lru_usage_ += e->charge;
+}
+
+void LRUCacheShard::LRU_Demote(LRUHandle* e) {
+  assert(e->next != nullptr);
+  assert(e->prev != nullptr);
+  if (lru_low_pri_ == e) {
+    lru_low_pri_ = e->prev;
+  }
+  e->next->prev = e->prev;
+  e->prev->next = e->next;
+  e->next = lru_.next;
+  e->prev = &lru_;
+  e->next->prev = e;
+  e->prev->next = e;
+
+  if (e->InHighPriPool()) {
+    assert(high_pri_pool_usage_ >= e->charge);
+    high_pri_pool_usage_ -= e->charge;
+    e->SetInHighPriPool(false);
+  }
+  if (!e->IsErased()) {
+    erased_usage_ += e->charge;
+    e->SetErased(true);
+  }
 }
 
 void LRUCacheShard::MaintainPoolSize() {
@@ -316,6 +359,7 @@ bool LRUCacheShard::Release(Cache::Handle* handle, bool force_erase) {
     }
     if (e->refs == 1 && e->InCache()) {
       // The item is still in cache, and nobody else holds a reference to it
+
       if (usage_ > capacity_ || force_erase) {
         // the cache is full
         // The LRU list must be empty since the cache is full
@@ -337,6 +381,7 @@ bool LRUCacheShard::Release(Cache::Handle* handle, bool force_erase) {
   if (last_reference) {
     e->Free();
   }
+
   return last_reference;
 }
 
@@ -429,9 +474,12 @@ void LRUCacheShard::Erase(const Slice& key, uint32_t hash) {
       if (last_reference) {
         usage_ -= e->charge;
       }
+
       if (last_reference && e->InCache()) {
         LRU_Remove(e);
       }
+
+      e->SetErased(true);
       e->SetInCache(false);
     }
   }
@@ -441,6 +489,7 @@ void LRUCacheShard::Erase(const Slice& key, uint32_t hash) {
   if (last_reference) {
     e->Free();
   }
+
 }
 
 size_t LRUCacheShard::GetUsage() const {
@@ -462,6 +511,11 @@ size_t LRUCacheShard::GetHighPriPoolCapacity() const {
 size_t LRUCacheShard::GetHighPriPoolUsage() const {
   MutexLock l(&mutex_);
   return high_pri_pool_usage_;
+}
+
+size_t LRUCacheShard::GetErasedUsage() const {
+  MutexLock l(&mutex_);
+  return erased_usage_;
 }
 
 std::string LRUCacheShard::GetPrintableOptions() const {
@@ -559,6 +613,15 @@ void LRUCache::SetHighPriPoolRatio(double high_pri_pool_ratio) {
     shards_[i].SetHighPriPoolRatio(high_pri_pool_ratio);
   }
 }
+
+size_t LRUCache::GetErasedUsage() const {
+  size_t size = 0;
+  for (int i = 0; i < num_shards_; i++) {
+    size += shards_[i].GetErasedUsage();
+  }
+  return size;
+}
+
 
 std::shared_ptr<Cache> NewLRUCache(const LRUCacheOptions& cache_opts) {
   return NewLRUCache(cache_opts.capacity, cache_opts.num_shard_bits,

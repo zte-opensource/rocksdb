@@ -220,6 +220,11 @@ class Cache {
     return 0;
   }
 
+  // returns the memory size for the entries that are to be erased.
+  virtual size_t GetErasedUsage() const {
+   return 0;
+  }
+
   // returns the ratio of memory usaged by the high priority pool
   virtual double GetHighPriPoolRatio() const {
     // default implementation returns 0

@@ -74,6 +74,7 @@ class ShardedCache : public Cache {
   virtual size_t GetUsage() const override;
   virtual size_t GetUsage(Handle* handle) const override;
   virtual size_t GetPinnedUsage() const override;
+  virtual size_t GetErasedUsage() const override = 0;
   virtual size_t GetHighPriPoolUsage() const override = 0;
   virtual double GetHighPriPoolRatio() const override = 0;
 
