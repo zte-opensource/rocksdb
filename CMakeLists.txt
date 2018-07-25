@@ -80,6 +80,8 @@ else()
   endif()
 
   if(WITH_SNAPPY)
+    option(WITH_SNAPPY_STATIC_LIB "build with libsnappy.a" OFF)
+    set(SNAPPY_USE_STATIC_LIB ${WITH_SNAPPY_STATIC_LIB})
     find_package(snappy REQUIRED)
     add_definitions(-DSNAPPY)
     include_directories(${SNAPPY_INCLUDE_DIR})
