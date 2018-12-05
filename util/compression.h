@@ -43,42 +43,42 @@
 
 namespace rocksdb {
 
-inline bool Snappy_Supported() {
+static bool __attribute__((noinline)) Snappy_Supported() {
 #ifdef SNAPPY
   return true;
 #endif
   return false;
 }
 
-inline bool Zlib_Supported() {
+static bool __attribute__((noinline)) Zlib_Supported() {
 #ifdef ZLIB
   return true;
 #endif
   return false;
 }
 
-inline bool BZip2_Supported() {
+static bool __attribute__((noinline)) BZip2_Supported() {
 #ifdef BZIP2
   return true;
 #endif
   return false;
 }
 
-inline bool LZ4_Supported() {
+static bool __attribute__((noinline)) LZ4_Supported() {
 #ifdef LZ4
   return true;
 #endif
   return false;
 }
 
-inline bool XPRESS_Supported() {
+static bool __attribute__((noinline)) XPRESS_Supported() {
 #ifdef XPRESS
   return true;
 #endif
   return false;
 }
 
-inline bool ZSTD_Supported() {
+static bool __attribute__((noinline)) ZSTD_Supported() {
 #ifdef ZSTD
   // ZSTD format is finalized since version 0.8.0.
   return (ZSTD_versionNumber() >= 800);
@@ -86,14 +86,14 @@ inline bool ZSTD_Supported() {
   return false;
 }
 
-inline bool ZSTDNotFinal_Supported() {
+static bool __attribute__((noinline)) ZSTDNotFinal_Supported() {
 #ifdef ZSTD
   return true;
 #endif
   return false;
 }
 
-inline bool CompressionTypeSupported(CompressionType compression_type) {
+static bool __attribute__((noinline)) CompressionTypeSupported(CompressionType compression_type) {
   switch (compression_type) {
     case kNoCompression:
       return true;
