@@ -230,6 +230,7 @@ Status DBImpl::NewDB() {
     }
     file->SetPreallocationBlockSize(
         immutable_db_options_.manifest_preallocation_size);
+    file->SetWriteLocationHint(Env::LOCATION_UNSORTED);
     unique_ptr<WritableFileWriter> file_writer(
         new WritableFileWriter(std::move(file), env_options));
     log::Writer log(std::move(file_writer), 0, false);
@@ -950,7 +951,7 @@ Status DBImpl::WriteLevel0TableForRecovery(int job_id, ColumnFamilyData* cfd,
           cfd->ioptions()->compression_opts, paranoid_file_checks,
           cfd->internal_stats(), TableFileCreationReason::kRecovery,
           &event_logger_, job_id, Env::IO_HIGH, nullptr /* table_properties */,
-          -1 /* level */, current_time, write_hint);
+          0 /* level */, current_time, write_hint);
       LogFlush(immutable_db_options_.info_log);
       ROCKS_LOG_DEBUG(immutable_db_options_.info_log,
                       "[%s] [WriteLevel0TableForRecovery]"
@@ -1079,6 +1080,7 @@ Status DBImpl::Open(const DBOptions& db_options, const std::string& dbname,
         &lfile, opt_env_options);
     if (s.ok()) {
       lfile->SetWriteLifeTimeHint(write_hint);
+      lfile->SetWriteLocationHint(Env::LOCATION_WAL);
       lfile->SetPreallocationBlockSize(
           impl->GetWalPreallocateBlockSize(max_write_buffer_size));
       {

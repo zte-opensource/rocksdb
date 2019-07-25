@@ -2861,6 +2861,7 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
           env_, DescriptorFileName(dbname_, pending_manifest_file_number_),
           &descriptor_file, opt_env_opts);
       if (s.ok()) {
+        descriptor_file->SetWriteLocationHint(Env::LOCATION_UNSORTED);
         descriptor_file->SetPreallocationBlockSize(
             db_options_->manifest_preallocation_size);
 

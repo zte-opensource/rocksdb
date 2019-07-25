@@ -164,6 +164,12 @@ class Env {
     WLTH_EXTREME,     // Data written has an extremely long life time
   };
 
+  enum WriteLocationHint {
+    LOCATION_WAL = 1,
+    LOCATION_UNSORTED = 2,
+    LOCATION_L0 = 3,
+  };
+
   // Create an object that writes to a new file with the specified
   // name.  Deletes any existing file with the same name and creates a
   // new file.  On success, stores a pointer to the new file in
@@ -684,6 +690,10 @@ class WritableFile {
   }
 
   virtual Env::IOPriority GetIOPriority() { return io_priority_; }
+
+  virtual void SetWriteLocationHint(Env::WriteLocationHint) {
+    // do nothing
+  }
 
   virtual void SetWriteLifeTimeHint(Env::WriteLifeTimeHint hint) {
     write_hint_ = hint;

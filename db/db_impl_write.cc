@@ -1346,6 +1346,7 @@ Status DBImpl::SwitchMemtable(ColumnFamilyData* cfd, WriteContext* context,
         // use preallocate_block_size instead
         // of calling GetWalPreallocateBlockSize()
         lfile->SetPreallocationBlockSize(preallocate_block_size);
+        lfile->SetWriteLocationHint(Env::LOCATION_WAL);
         lfile->SetWriteLifeTimeHint(write_hint);
         unique_ptr<WritableFileWriter> file_writer(
             new WritableFileWriter(std::move(lfile), opt_env_opt));

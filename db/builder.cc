@@ -118,6 +118,10 @@ Status BuildTable(
         return s;
       }
       file->SetIOPriority(io_priority);
+      file->SetWriteLocationHint(
+          level < 0 ?
+              Env::LOCATION_UNSORTED :
+              Env::WriteLocationHint(Env::LOCATION_L0 + level));
       file->SetWriteLifeTimeHint(write_hint);
 
       file_writer.reset(new WritableFileWriter(std::move(file), env_options,
