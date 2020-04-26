@@ -22,6 +22,7 @@
 #include "table/block_based_table_factory.h"
 #include "table/plain_table_factory.h"
 #include "util/string_util.h"
+#include "rocksdb/utilities/table_properties_collectors.h"
 
 namespace rocksdb {
 
@@ -702,6 +703,18 @@ Status ParseColumnFamilyOption(const std::string& name,
             "unable to parse the specified CF option " + name);
       }
       new_options->table_factory.reset(NewBlockBasedTableFactory(table_opt));
+    } else if(name == "CompactOnDeletionCollector"){
+        /*add window_size and deletion_trigger, eg: CompactOnDeletionCollector=1000:500 */
+        size_t start = 0;
+        size_t end = value.find(':');
+        if (end == std::string::npos) {
+          return Status::InvalidArgument(
+              "unable to parse the specified CF option " + name);
+        }
+        size_t sliding_window_size = ParseInt(value.substr(start, end - start));
+        size_t deletion_trigger = ParseInt(value.substr(end+1, value.size()-end-1));
+        auto factory = rocksdb::NewCompactOnDeletionCollectorFactory(sliding_window_size, deletion_trigger);
+        new_options->table_properties_collector_factories.push_back(factory);
     } else if (name == "plain_table_factory") {
       // Nested options
       PlainTableOptions table_opt, base_table_options;
