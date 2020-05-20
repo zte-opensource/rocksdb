@@ -1177,7 +1177,9 @@ Status ParseDBOption(const std::string& name,
   try {
     if (name == "rate_limiter_bytes_per_sec") {
       new_options->rate_limiter.reset(
-          NewGenericRateLimiter(static_cast<int64_t>(ParseUint64(value))));
+          NewGenericRateLimiter(static_cast<int64_t>(ParseUint64(value)),
+                                            100 * 1000, 10,
+                                            RateLimiter::Mode::kAllIo, true));
     } else {
       auto iter = db_options_type_info.find(name);
       if (iter == db_options_type_info.end()) {
